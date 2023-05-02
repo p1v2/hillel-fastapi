@@ -31,13 +31,12 @@ class BookCreateModel(BaseModel):
 
 @router.get("", response_model=list[BookModel])
 async def get_books(title: str = None, session=Depends(get_session)):
-    async with session() as session:
-        books = await session.query(Book).all()
+    books = session.query(Book).all()
 
-        books_models = []
-        for book in books:
-            books_models.append(BookModel.from_orm(book))
-        return books_models
+    books_models = []
+    for book in books:
+        books_models.append(BookModel.from_orm(book))
+    return books_models
 
 
 # @router.get("/{book_id}", response_model=BookModel)
