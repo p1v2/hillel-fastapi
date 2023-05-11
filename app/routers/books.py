@@ -30,9 +30,8 @@ class BookCreateModel(BaseModel):
 
 
 class BookUpdate(BaseModel):
-    title: str = None
-    author: str = None
-    description: str = None
+    title: str
+    author: str
     pages_count: int = None
 
 
@@ -62,27 +61,32 @@ async def create_book(book: BookCreateModel, session=Depends(get_session)):
     return BookModel.from_orm(book)
 
 
-@router.put("/books/{book_id}", response_model=BookModel, status_code=200)
+@router.put("/update/{book_id}")
 async def update_book(book_id: int, book_update: BookUpdate, session=Depends(get_session)):
+    book = session.query(Book).filter(Book.id == book_id).first()
     for var, value in vars(book_update).items():
         if value is not None:
-            setattr(book_id, var, value)
+            setattr(book, var, value)
     session.commit()
+    return BookModel.from_orm(book)
     
 
-@router.delete("/books/{book_id}", response_model=BookModel)
+@router.delete("/delete/{book_id}")
 async def delete_book(book_id: int, session=Depends(get_session)):
     book = session.query(Book).filter(Book.id == book_id).first()
     if not book:
         raise HTTPException(status_code=404, detail="Book not found")
-    session.delete(book)
-    session.commit()
-    return {"message": "Book deleted"}
+    else:
+        session.delete(book)
+        session.commit()
+        return {"message": "Book deleted"}
 
 
-@router.get("/books/{book_id}", response_model=BookModel)
+
+@router.get("/get/{book_id}", response_model=BookModel)
 async def get_book(book_id: int, session=Depends(get_session)):
     if book := session.query(Book).filter(Book.id == book_id).first():
-        return Book(**book.__dict__)
+        book_data = {k: v for k, v in book.__dict__.items() if k != '_sa_instance_state'}
+        return Book(**book_data)
     else:
         raise HTTPException(status_code=404, detail="Book not found")

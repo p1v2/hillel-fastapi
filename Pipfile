@@ -8,9 +8,11 @@ fastapi = "*"
 pydantic = "*"
 requests = "*"
 pymysql = "*"
-sqlalchemy = "2.0.12"
+sqlalchemy = "*"
 alembic = "1.10.4"
 python-dotenv = "*"
+python-multipart = "*"
+cryptography = "*"
 
 [dev-packages]
 
