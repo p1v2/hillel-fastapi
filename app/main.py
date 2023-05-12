@@ -53,3 +53,4 @@ async def get_cookie_or_default(
 @app.post("/upload")
 async def upload_file(file: UploadFile):
     return {"size": len(await file.read())}
+
