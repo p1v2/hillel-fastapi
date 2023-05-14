@@ -11,6 +11,7 @@ pymysql = "*"
 sqlalchemy = "2.0.12"
 alembic = "1.10.4"
 python-dotenv = "*"
+uvicorn = "*"
 
 [dev-packages]
 
