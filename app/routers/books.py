@@ -1,10 +1,12 @@
 import json
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from app.dependencies.db import get_session
 from app.models import Book
+
+from sqlalchemy.future import select
 
 router = APIRouter(prefix="/books")
 
@@ -29,14 +31,17 @@ class BookCreateModel(BaseModel):
     author: str
 
 
+class BookUpdate(BaseModel):
+    title: str
+    author: str
+    pages_count: int = None
+
+
 @router.get("", response_model=list[BookModel])
 async def get_books(title: str = None, session=Depends(get_session)):
     books = session.query(Book).all()
 
-    books_models = []
-    for book in books:
-        books_models.append(BookModel.from_orm(book))
-    return books_models
+    return [BookModel.from_orm(book) for book in books]
 
 
 # @router.get("/{book_id}", response_model=BookModel)
@@ -57,3 +62,33 @@ async def create_book(book: BookCreateModel, session=Depends(get_session)):
 
     return BookModel.from_orm(book)
 
+
+@router.put("/update/{book_id}")
+async def update_book(book_id: int, book_update: BookUpdate, session=Depends(get_session)):
+    book = session.query(Book).filter(Book.id == book_id).first()
+    for variant, sense in variants(book_update).items():
+        if value is not None:
+            setattr(book, variant, sense)
+    session.commit()
+    return BookModel.from_orm(book)
+
+
+@router.delete("/delete/{book_id}")
+async def delete_book(book_id: int, session=Depends(get_session)):
+    book = session.query(Book).filter(Book.id == book_id).first()
+    if not book:
+        raise HTTPException(status_code=404, detail="Book not found")
+    else:
+        session.delete(book)
+        session.commit()
+        return {"message": "Book deleted"}
+
+
+@router.get("/get/{book_id}", response_model=BookModel)
+async def get_book(book_id: int, session=Depends(get_session)):
+    if book := session.query(Book).filter(Book.id == book_id).first():
+        book_data = {k: v for k, v in book.__dict__.items()
+                     if k != '_sa_instance_state'}
+        return Book(**book_data)
+    else:
+        raise HTTPException(status_code=404, detail="Book not found")
