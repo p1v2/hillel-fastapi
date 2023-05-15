@@ -66,6 +66,10 @@ async def create_book(book: BookCreateModel, session=Depends(get_session)):
 @router.put("/update/{book_id}")
 async def update_book(book_id: int, book_update: BookUpdate, session=Depends(get_session)):
     book = session.query(Book).filter(Book.id == book_id).first()
+
+    if not book:
+        raise HTTPException(status_code=404, detail="Book not found")
+
     for variant, sense in variants(book_update).items():
         if value is not None:
             setattr(book, variant, sense)
@@ -76,6 +80,7 @@ async def update_book(book_id: int, book_update: BookUpdate, session=Depends(get
 @router.delete("/delete/{book_id}")
 async def delete_book(book_id: int, session=Depends(get_session)):
     book = session.query(Book).filter(Book.id == book_id).first()
+
     if not book:
         raise HTTPException(status_code=404, detail="Book not found")
     else:
