@@ -4,7 +4,7 @@ from fastapi.security import HTTPBasic, HTTPBasicCredentials
 security = HTTPBasic()
 
 users = {
-    "vitalii": "123",
+    "nic": "7788",
 }
 
 
