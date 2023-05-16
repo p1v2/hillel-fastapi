@@ -64,7 +64,10 @@ async def update_book(book_id: int, book: BookCreateModel, session=Depends(get_s
         item = session.query(Book).filter(Book.id == book_id).first()
     except SQLAlchemyError as e:
         print(e)
-        return {"message": "error while working with database"}
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Error while working with database",
+        )
     else:
         if item:
             item.title = book.title
@@ -73,18 +76,21 @@ async def update_book(book_id: int, book: BookCreateModel, session=Depends(get_s
             return BookModel.from_orm(item)
         else:
             raise HTTPException(
-                status_code=status.HTTP_204_NO_CONTENT,
+                status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Book {book_id} does not exist in database",
             )
 
 
-@router.delete("/{book_id}", response_model=BookModel, status_code=200)
+@router.delete("/{book_id}", response_model=BookModel, status_code=204)
 async def delete_book(book_id: int, session=Depends(get_session)):
     try:
         item = session.query(Book).filter(Book.id == book_id).first()
     except SQLAlchemyError as e:
         print(e)
-        return {"message": "error while working with database"}
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Error while working with database",
+        )
     else:
         if item:
             session.delete(item)
@@ -105,7 +111,10 @@ def find_book(book_id: int, session=Depends(get_session)):
         session.commit()
     except SQLAlchemyError as e:
         print(e)
-        return {"message": "error while working with database"}
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Error while working with database",
+        )
     else:
         if item:
             return BookModel.from_orm(item)
