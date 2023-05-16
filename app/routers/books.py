@@ -1,8 +1,7 @@
-import json
-
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-
+from starlette import status
+from sqlalchemy.exc import SQLAlchemyError
 from app.dependencies.db import get_session
 from app.models import Book
 
@@ -15,9 +14,9 @@ router = APIRouter(prefix="/books")
 
 
 class BookModel(BaseModel):
-    id: int
-    title: str
-    author: str
+    id: int = None
+    title: str = None
+    author: str = None
     pages_count: int = None
 
     class Config:
@@ -39,7 +38,7 @@ async def get_books(title: str = None, session=Depends(get_session)):
     return books_models
 
 
-# @router.get("/{book_id}", response_model=BookModel)
+# @router.get("/{book_id", response_model=BookModel)
 # async def get_book(book_id: int):
 #     try:
 #         return next(book for book in books if book["id"] == book_id)
@@ -57,3 +56,70 @@ async def create_book(book: BookCreateModel, session=Depends(get_session)):
 
     return BookModel.from_orm(book)
 
+
+@router.patch("/{book_id}", response_model=BookModel, status_code=200)
+async def update_book(book_id: int, book: BookCreateModel, session=Depends(get_session)):
+    book = Book(**book.dict(exclude_unset=True))
+    try:
+        item = session.query(Book).filter(Book.id == book_id).first()
+    except SQLAlchemyError as e:
+        print(e)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Error while working with database",
+        )
+    else:
+        if item:
+            item.title = book.title
+            item.author = book.author
+            session.commit()
+            return BookModel.from_orm(item)
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Book {book_id} does not exist in database",
+            )
+
+
+@router.delete("/{book_id}", response_model=BookModel, status_code=204)
+async def delete_book(book_id: int, session=Depends(get_session)):
+    try:
+        item = session.query(Book).filter(Book.id == book_id).first()
+    except SQLAlchemyError as e:
+        print(e)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Error while working with database",
+        )
+    else:
+        if item:
+            session.delete(item)
+            session.commit()
+            return {"message": f"Book {book_id} deleted successfully"}
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_204_NO_CONTENT,
+                detail=f"Book {book_id} does not exist in database",
+            )
+
+
+@router.get("/{book_id}", response_model=BookModel, status_code=201)
+def find_book(book_id: int, session=Depends(get_session)):
+    try:
+        item = session.query(Book).filter(Book.id == book_id).first()
+        print(item)
+        session.commit()
+    except SQLAlchemyError as e:
+        print(e)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Error while working with database",
+        )
+    else:
+        if item:
+            return BookModel.from_orm(item)
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_204_NO_CONTENT,
+                detail=f"Book {book_id} does not exist in database",
+            )
